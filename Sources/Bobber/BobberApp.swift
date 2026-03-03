@@ -1,10 +1,13 @@
-import SwiftUI
+import AppKit
 
+// Use pure AppKit entry point instead of SwiftUI App protocol
+// SwiftUI's Settings-only scene doesn't reliably trigger app lifecycle in SPM builds
 @main
-struct BobberApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
-    var body: some Scene {
-        Settings { EmptyView() }
+enum BobberApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        app.run()
     }
 }

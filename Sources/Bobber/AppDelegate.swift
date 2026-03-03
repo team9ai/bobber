@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cleanupTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSLog("[Bobber] applicationDidFinishLaunching called")
         NSApp.setActivationPolicy(.accessory)
         ensureDirectories()
 
@@ -22,17 +23,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowJumper = WindowJumper()
 
         setupMenubarIcon()
+        NSLog("[Bobber] menubar icon setup done, statusItem: \(String(describing: statusItem))")
         setupPanel()
         setupEventWatcher()
         setupPermissionServer()
         setupHotkey()
         setupCleanupTimer()
+
+        // Auto-show panel on launch for debugging
+        panelController?.show()
+        NSLog("[Bobber] panel shown on launch")
     }
 
     private func setupMenubarIcon() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Bobber")
+            let image = NSImage(systemSymbolName: "fish.fill", accessibilityDescription: "Bobber")
+            image?.isTemplate = true
+            button.image = image
+            button.image?.size = NSSize(width: 18, height: 18)
             button.action = #selector(togglePanel)
             button.target = self
         }
