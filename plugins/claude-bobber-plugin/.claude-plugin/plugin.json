@@ -1,0 +1,8 @@
+{
+  "name": "bobber-claude",
+  "version": "1.0.0",
+  "description": "Session monitoring hooks for Bobber",
+  "author": { "name": "Bobber" },
+  "license": "MIT",
+  "keywords": ["bobber", "monitoring", "hooks", "session"]
+}
