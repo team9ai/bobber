@@ -48,4 +48,37 @@ final class ModelTests: XCTestCase {
         let session = Session(id: "s1", projectName: "test", projectPath: "/tmp/test")
         XCTAssertEqual(session.priority, .standard)
     }
+
+    func testSessionDecodesWithoutPriorityField() throws {
+        let json = """
+        {
+            "id": "s1",
+            "projectName": "test",
+            "projectPath": "/tmp/test",
+            "state": "active",
+            "lastEvent": "2026-03-04T10:00:00Z"
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let session = try decoder.decode(Session.self, from: json)
+        XCTAssertEqual(session.priority, .standard)
+    }
+
+    func testSessionDecodesWithPriorityField() throws {
+        let json = """
+        {
+            "id": "s1",
+            "projectName": "test",
+            "projectPath": "/tmp/test",
+            "state": "active",
+            "lastEvent": "2026-03-04T10:00:00Z",
+            "priority": 0
+        }
+        """.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let session = try decoder.decode(Session.self, from: json)
+        XCTAssertEqual(session.priority, .focus)
+    }
 }
