@@ -2,10 +2,42 @@ import Foundation
 import Combine
 
 class SessionManager: ObservableObject {
-    @Published var sessions: [Session] = []
-    @Published var pendingActions: [PendingAction] = []
+    @Published var sessions: [Session] = [] { didSet { saveState() } }
+    @Published var pendingActions: [PendingAction] = [] { didSet { saveState() } }
 
     private let staleTimeout: TimeInterval = 30 * 60  // 30 minutes
+
+    private static var stateURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".bobber/state.json")
+    }
+
+    init() {
+        loadState()
+    }
+
+    private func loadState() {
+        guard let data = try? Data(contentsOf: Self.stateURL) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let state = try? decoder.decode(PersistedState.self, from: data) else { return }
+        sessions = state.sessions
+        pendingActions = state.pendingActions
+        NSLog("[Bobber] SessionManager: restored \(sessions.count) sessions, \(pendingActions.count) actions from disk")
+    }
+
+    private func saveState() {
+        let state = PersistedState(sessions: sessions, pendingActions: pendingActions)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        guard let data = try? encoder.encode(state) else { return }
+        try? data.write(to: Self.stateURL, options: .atomic)
+    }
+
+    private struct PersistedState: Codable {
+        let sessions: [Session]
+        let pendingActions: [PendingAction]
+    }
 
     func handleEvent(_ event: BobberEvent) {
         NSLog("[Bobber] SessionManager: handling \(event.eventType.rawValue) for \(event.sessionId), current sessions: \(sessions.count)")
@@ -13,9 +45,9 @@ class SessionManager: ObservableObject {
             sessions[index].handleEvent(type: event.eventType)
             sessions[index].terminal = event.terminal ?? sessions[index].terminal
             sessions[index].pid = event.pid
-            if let tool = event.details?.tool {
+            if let tool = event.details?.tool, !tool.isEmpty {
                 sessions[index].lastTool = tool
-                sessions[index].lastToolSummary = toolSummary(from: event.details)
+                sessions[index].lastToolSummary = event.details?.description
             }
         } else {
             var session = Session(

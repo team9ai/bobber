@@ -4,7 +4,7 @@ enum SessionState: String, Codable {
     case active, blocked, idle, completed, stale
 }
 
-struct Session: Identifiable {
+struct Session: Identifiable, Codable {
     let id: String
     let projectName: String
     let projectPath: String

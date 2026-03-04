@@ -4,7 +4,7 @@ enum ActionType: String, Codable {
     case permission, decision, completion
 }
 
-struct PendingAction: Identifiable {
+struct PendingAction: Identifiable, Codable {
     let id: String
     let sessionId: String
     let type: ActionType

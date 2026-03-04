@@ -54,6 +54,7 @@ struct PanelContentView: View {
             }
         }
         .frame(minWidth: 340, maxWidth: 340, minHeight: 200, maxHeight: 600)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

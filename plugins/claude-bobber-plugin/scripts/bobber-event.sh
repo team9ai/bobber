@@ -66,9 +66,47 @@ tool_summary() {
 
 read -r TERM_APP TERM_ID <<< "$(detect_terminal)"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-SESSION_ID="${CLAUDE_SESSION_ID:-$PPID-$(basename "${PWD}")}"
-PROJECT_PATH="${PWD}"
-PROJECT_NAME="$(basename "${PWD}")"
+
+# Extract session ID from hook JSON (prefer real session_id over fallback)
+HOOK_SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+SESSION_ID="${HOOK_SESSION_ID:-${CLAUDE_SESSION_ID:-$PPID-$(basename "${PWD}")}}"
+
+# Extract session title from transcript (first user message, cached per session)
+TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+SESSION_TITLE=""
+TITLE_CACHE="${HOME}/.bobber/.title-cache"
+mkdir -p "$TITLE_CACHE"
+if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
+    CACHE_FILE="${TITLE_CACHE}/${SESSION_ID}"
+    if [ -f "$CACHE_FILE" ]; then
+        SESSION_TITLE=$(cat "$CACHE_FILE")
+    else
+        SESSION_TITLE=$(python3 -c "
+import json, sys
+with open('$TRANSCRIPT_PATH') as f:
+    for line in f:
+        try:
+            d = json.loads(line)
+            if d.get('type') == 'user':
+                msg = d.get('message',{}).get('content','')
+                texts = []
+                if isinstance(msg, list):
+                    texts = [p['text'] for p in msg if isinstance(p, dict) and p.get('type') == 'text']
+                elif isinstance(msg, str):
+                    texts = [msg]
+                for t in texts:
+                    for l in t.split('\n'):
+                        l = l.strip()
+                        if l and not l.startswith('<') and not l.startswith('Base directory'):
+                            print(l[:60]); sys.exit(0)
+        except Exception: pass
+" 2>/dev/null || true)
+        [ -n "$SESSION_TITLE" ] && echo "$SESSION_TITLE" > "$CACHE_FILE"
+    fi
+fi
+
+PROJECT_PATH="${CLAUDE_PROJECT_DIR:-${PWD}}"
+PROJECT_NAME="$(basename "${PROJECT_PATH}")"
 
 case "$EVENT_TYPE" in
     SessionStart)      BOBBER_TYPE="session_start" ;;
@@ -91,6 +129,7 @@ EVENT_JSON=$(jq -n \
     --arg sessionId "$SESSION_ID" \
     --arg projectPath "$PROJECT_PATH" \
     --arg projectName "$PROJECT_NAME" \
+    --arg sessionTitle "$SESSION_TITLE" \
     --arg eventType "$BOBBER_TYPE" \
     --arg tool "$TOOL_NAME" \
     --arg summary "$SUMMARY" \
@@ -103,6 +142,7 @@ EVENT_JSON=$(jq -n \
         sessionId: $sessionId,
         projectPath: $projectPath,
         projectName: $projectName,
+        sessionTitle: (if $sessionTitle == "" then null else $sessionTitle end),
         eventType: $eventType,
         details: { tool: $tool, description: $summary },
         terminal: { app: $termApp, tabId: $termId }

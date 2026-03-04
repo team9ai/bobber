@@ -19,25 +19,7 @@ class FloatingPanel: NSPanel {
         self.hasShadow = true
         self.isMovableByWindowBackground = true
 
-        let visualEffect = NSVisualEffectView()
-        visualEffect.material = .sidebar
-        visualEffect.blendingMode = .behindWindow
-        visualEffect.state = .active
-        visualEffect.wantsLayer = true
-        visualEffect.layer?.cornerRadius = 12
-        visualEffect.layer?.masksToBounds = true
-
         let hostingView = ClickHostingView(rootView: contentView)
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-
-        visualEffect.addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.topAnchor.constraint(equalTo: visualEffect.topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: visualEffect.bottomAnchor),
-            hostingView.leadingAnchor.constraint(equalTo: visualEffect.leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: visualEffect.trailingAnchor),
-        ])
-
-        self.contentView = visualEffect
+        self.contentView = hostingView
     }
 }
