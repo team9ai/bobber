@@ -4,19 +4,31 @@ struct SessionsListView: View {
     @ObservedObject var sessionManager: SessionManager
     var onSelectSession: ((String) -> Void)?
 
-    /// Sessions grouped by projectPath, sorted by most recent activity (hidden sessions filtered out)
-    private var groupedSessions: [(projectName: String, sessions: [Session])] {
+    /// Sections: priority group -> project groups -> sessions sorted by lastEvent
+    private var sections: [(priority: SessionPriority, projectGroups: [(projectName: String, projectPath: String, sessions: [Session])])] {
         let visible = sessionManager.sessions.filter { !sessionManager.hiddenSessionIds.contains($0.id) }
-        let grouped = Dictionary(grouping: visible) { $0.projectPath }
-        return grouped.map { (path, sessions) in
-            let name = sessions.first?.projectName ?? URL(fileURLWithPath: path).lastPathComponent
-            let sorted = sessions.sorted { $0.lastEvent > $1.lastEvent }
-            return (projectName: name, sessions: sorted)
-        }
-        .sorted { group1, group2 in
-            let latest1 = group1.sessions.first?.lastEvent ?? .distantPast
-            let latest2 = group2.sessions.first?.lastEvent ?? .distantPast
-            return latest1 > latest2
+
+        // Layer 1: group by priority
+        let byPriority = Dictionary(grouping: visible) { $0.priority }
+
+        return SessionPriority.allCases.compactMap { priority in
+            guard let sessionsAtPriority = byPriority[priority], !sessionsAtPriority.isEmpty else { return nil }
+
+            // Layer 2: group by projectPath
+            let byProject = Dictionary(grouping: sessionsAtPriority) { $0.projectPath }
+            let projectGroups = byProject.map { (path, sessions) -> (projectName: String, projectPath: String, sessions: [Session]) in
+                let name = sessions.first?.projectName ?? URL(fileURLWithPath: path).lastPathComponent
+                // Layer 3: sort by lastEvent within project
+                let sorted = sessions.sorted { $0.lastEvent > $1.lastEvent }
+                return (projectName: name, projectPath: path, sessions: sorted)
+            }
+            .sorted { g1, g2 in
+                let latest1 = g1.sessions.first?.lastEvent ?? .distantPast
+                let latest2 = g2.sessions.first?.lastEvent ?? .distantPast
+                return latest1 > latest2
+            }
+
+            return (priority: priority, projectGroups: projectGroups)
         }
     }
 
@@ -37,34 +49,72 @@ struct SessionsListView: View {
         } else {
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(groupedSessions, id: \.projectName) { group in
-                        VStack(alignment: .leading, spacing: 4) {
-                            // Project header
+                    ForEach(sections, id: \.priority) { section in
+                        // Priority group header (skip for .standard)
+                        if section.priority != .standard {
                             HStack(spacing: 6) {
-                                Image(systemName: "folder.fill")
+                                Text(section.priority.displayName)
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(group.projectName)
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.secondary)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(section.priority.accentColor)
                                     .textCase(.uppercase)
+                                Rectangle()
+                                    .fill(section.priority.accentColor.opacity(0.3))
+                                    .frame(height: 1)
                             }
                             .padding(.horizontal, 4)
+                            .padding(.top, section.priority == .focus ? 0 : 4)
+                        }
 
-                            // Session rows
-                            ForEach(group.sessions) { session in
-                                Button {
-                                    onSelectSession?(session.id)
-                                } label: {
-                                    SessionRowView(session: session, sessionManager: sessionManager)
+                        ForEach(section.projectGroups, id: \.projectPath) { group in
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Project header
+                                HStack(spacing: 6) {
+                                    Image(systemName: "folder.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Text(group.projectName)
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.secondary)
+                                        .textCase(.uppercase)
                                 }
-                                .buttonStyle(.plain)
+                                .padding(.horizontal, 4)
+                                .contextMenu {
+                                    priorityMenu(for: group.projectPath)
+                                }
+
+                                // Session rows
+                                ForEach(group.sessions) { session in
+                                    SessionRowView(session: session, sessionManager: sessionManager)
+                                        .onTapGesture {
+                                            onSelectSession?(session.id)
+                                        }
+                                }
                             }
                         }
                     }
                 }
                 .padding(8)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func priorityMenu(for projectPath: String) -> some View {
+        let current = sessionManager.projectPriorityDefaults[projectPath] ?? .standard
+        Menu("设置项目优先级") {
+            ForEach(SessionPriority.allCases, id: \.self) { priority in
+                Button {
+                    sessionManager.setProjectPriority(projectPath: projectPath, priority: priority)
+                } label: {
+                    HStack {
+                        Text(priority.displayName)
+                        if priority == current {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
             }
         }
     }
@@ -78,7 +128,8 @@ struct SessionRowView: View {
     @State private var nicknameInput: String = ""
 
     private var needsAttention: Bool {
-        session.state == .blocked || session.state == .idle
+        guard session.state == .blocked || session.state == .idle else { return false }
+        return !sessionManager.acknowledgedSessionIds.contains(session.id)
     }
 
     var body: some View {
@@ -167,6 +218,28 @@ struct SessionRowView: View {
             }
         }
         .contextMenu {
+            if needsAttention {
+                Button {
+                    sessionManager.acknowledgeSession(session.id)
+                } label: {
+                    Label("Mark as Read", systemImage: "checkmark.circle")
+                }
+                Divider()
+            }
+            Menu("优先级") {
+                ForEach(SessionPriority.allCases, id: \.self) { priority in
+                    Button {
+                        sessionManager.setSessionPriority(session.id, priority: priority)
+                    } label: {
+                        HStack {
+                            Text(priority.displayName)
+                            if priority == session.priority {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
             Button {
                 nicknameInput = sessionManager.sessionNicknames[session.id] ?? ""
                 showRenameAlert = true

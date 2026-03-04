@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 enum SessionPriority: Int, Codable, CaseIterable, Comparable {
     case focus = 0
@@ -14,6 +14,14 @@ enum SessionPriority: Int, Codable, CaseIterable, Comparable {
         case .focus: return "专注"
         case .priority: return "优先"
         case .standard: return "标准"
+        }
+    }
+
+    var accentColor: Color {
+        switch self {
+        case .focus: return .orange
+        case .priority: return .blue
+        case .standard: return .secondary
         }
     }
 }
