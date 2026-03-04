@@ -48,11 +48,21 @@ struct SessionsListView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(sections, id: \.priority) { section in
-                        // Priority group header (skip for .standard)
-                        if section.priority != .standard {
+                VStack(spacing: 12) {
+                    let showHeaders = !(sections.count == 1 && sections[0].priority == .standard)
+                    ForEach(Array(sections.enumerated()), id: \.element.priority) { index, section in
+                        if showHeaders {
+                            // Separator between priority groups (not before standard)
+                            if index > 0 && section.priority != .standard {
+                                Divider()
+                                    .padding(.horizontal, 4)
+                            }
+
+                            // Priority group header
                             HStack(spacing: 6) {
+                                Text(section.priority.badge)
+                                    .font(.system(.caption, design: .monospaced, weight: .bold))
+                                    .foregroundColor(section.priority.accentColor)
                                 Text(section.priority.displayName)
                                     .font(.caption)
                                     .fontWeight(.bold)
@@ -78,6 +88,12 @@ struct SessionsListView: View {
                                         .fontWeight(.semibold)
                                         .foregroundColor(.secondary)
                                         .textCase(.uppercase)
+                                    if let projectPriority = sessionManager.projectPriorityDefaults[group.projectPath],
+                                       projectPriority != .standard {
+                                        Text(projectPriority.badge)
+                                            .font(.system(.caption2, design: .monospaced, weight: .bold))
+                                            .foregroundColor(projectPriority.accentColor)
+                                    }
                                 }
                                 .padding(.horizontal, 4)
                                 .contextMenu {
@@ -86,10 +102,9 @@ struct SessionsListView: View {
 
                                 // Session rows
                                 ForEach(group.sessions) { session in
-                                    SessionRowView(session: session, sessionManager: sessionManager)
-                                        .onTapGesture {
-                                            onSelectSession?(session.id)
-                                        }
+                                    SessionRowView(session: session, sessionManager: sessionManager, onTap: {
+                                        onSelectSession?(session.id)
+                                    })
                                 }
                             }
                         }
@@ -103,13 +118,13 @@ struct SessionsListView: View {
     @ViewBuilder
     private func priorityMenu(for projectPath: String) -> some View {
         let current = sessionManager.projectPriorityDefaults[projectPath] ?? .standard
-        Menu("设置项目优先级") {
+        Menu("Project Priority") {
             ForEach(SessionPriority.allCases, id: \.self) { priority in
                 Button {
                     sessionManager.setProjectPriority(projectPath: projectPath, priority: priority)
                 } label: {
                     HStack {
-                        Text(priority.displayName)
+                        Text("\(priority.badge) \(priority.displayName)")
                         if priority == current {
                             Image(systemName: "checkmark")
                         }
@@ -123,6 +138,7 @@ struct SessionsListView: View {
 struct SessionRowView: View {
     let session: Session
     @ObservedObject var sessionManager: SessionManager
+    var onTap: (() -> Void)? = nil
     @State private var pulsePhase: Bool = false
     @State private var showRenameAlert: Bool = false
     @State private var nicknameInput: String = ""
@@ -217,6 +233,10 @@ struct SessionRowView: View {
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
         .contextMenu {
             if needsAttention {
                 Button {
@@ -226,13 +246,13 @@ struct SessionRowView: View {
                 }
                 Divider()
             }
-            Menu("优先级") {
+            Menu("Priority") {
                 ForEach(SessionPriority.allCases, id: \.self) { priority in
                     Button {
                         sessionManager.setSessionPriority(session.id, priority: priority)
                     } label: {
                         HStack {
-                            Text(priority.displayName)
+                            Text("\(priority.badge) \(priority.displayName)")
                             if priority == session.priority {
                                 Image(systemName: "checkmark")
                             }

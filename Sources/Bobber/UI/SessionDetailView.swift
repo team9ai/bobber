@@ -93,18 +93,31 @@ struct SessionDetailView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .frame(width: 70, alignment: .leading)
-                    Picker("", selection: Binding(
-                        get: { session.priority },
-                        set: { newPriority in
-                            sessionManager.setSessionPriority(session.id, priority: newPriority)
-                        }
-                    )) {
+                    HStack(spacing: 2) {
                         ForEach(SessionPriority.allCases, id: \.self) { priority in
-                            Text(priority.displayName).tag(priority)
+                            let isSelected = session.priority == priority
+                            Button {
+                                sessionManager.setSessionPriority(session.id, priority: priority)
+                            } label: {
+                                Text("\(priority.badge) \(priority.displayName)")
+                                    .font(.caption)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                    .foregroundColor(isSelected ? .white : .secondary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 5)
+                                            .fill(isSelected ? priority.accentColor : Color.clear)
+                                    )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    .padding(2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(Color.primary.opacity(0.06))
+                    )
                 }
 
                 Divider()

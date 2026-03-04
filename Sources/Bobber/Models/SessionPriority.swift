@@ -11,9 +11,17 @@ enum SessionPriority: Int, Codable, CaseIterable, Comparable {
 
     var displayName: String {
         switch self {
-        case .focus: return "专注"
-        case .priority: return "优先"
-        case .standard: return "标准"
+        case .focus: return "Focus"
+        case .priority: return "Priority"
+        case .standard: return "Standard"
+        }
+    }
+
+    var badge: String {
+        switch self {
+        case .focus: return "!!!"
+        case .priority: return "!!"
+        case .standard: return "!"
         }
     }
 
@@ -21,7 +29,7 @@ enum SessionPriority: Int, Codable, CaseIterable, Comparable {
         switch self {
         case .focus: return .orange
         case .priority: return .blue
-        case .standard: return .secondary
+        case .standard: return .gray
         }
     }
 }
