@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:bobber}",
+      "name": "Debug Bobber",
+      "target": "Bobber",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Bobber"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:bobber}",
+      "name": "Release Bobber",
+      "target": "Bobber",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Bobber"
+    }
+  ]
+}

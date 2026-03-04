@@ -58,7 +58,10 @@ struct PanelContentView: View {
                 } else {
                     SessionsListView(
                         sessionManager: sessionManager,
-                        onSelectSession: { selectedSessionId = $0 }
+                        onSelectSession: { id in
+                            sessionManager.acknowledgeSession(id)
+                            selectedSessionId = id
+                        }
                     )
                 }
             case .actions:

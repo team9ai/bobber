@@ -26,7 +26,7 @@ detect_terminal() {
         comm=$(ps -o comm= -p "$pid" 2>/dev/null | tr -d ' ')
         case "$comm" in
             *iTerm2*)    echo "iterm2" ""; return ;;
-            *Terminal*)  echo "terminal" "$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')"; return ;;
+            *Terminal*)  echo "terminal" "/dev/$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')"; return ;;
             *ghostty*)   echo "ghostty" ""; return ;;
             *kitty*)     echo "kitty" ""; return ;;
             *Electron*)  echo "vscode" ""; return ;;
@@ -60,11 +60,47 @@ tool_summary() {
         Read)    echo "$(echo "$tool_input" | jq -r '.file_path // ""' 2>/dev/null)" ;;
         Grep)    echo "grep: $(echo "$tool_input" | jq -r '.pattern // ""' 2>/dev/null | head -c 40)" ;;
         Glob)    echo "glob: $(echo "$tool_input" | jq -r '.pattern // ""' 2>/dev/null | head -c 40)" ;;
+        AskUserQuestion) echo "$(echo "$tool_input" | jq -r '.questions[0].question // ""' 2>/dev/null | head -c 80)" ;;
         *)       echo "$tool_name" ;;
     esac
 }
 
 read -r TERM_APP TERM_ID <<< "$(detect_terminal)"
+
+# Build terminal JSON with proper fields for each terminal type
+build_terminal_json() {
+    local app="$1" id="$2"
+    case "$app" in
+        iterm2)
+            jq -n --arg app "$app" --arg tabId "$id" \
+                '{ app: $app, tabId: $tabId }' ;;
+        terminal)
+            jq -n --arg app "$app" --arg ttyPath "$id" \
+                '{ app: $app, ttyPath: $ttyPath }' ;;
+        tmux)
+            jq -n --arg app "$app" --arg tmuxTarget "$id" \
+                '{ app: $app, tmuxTarget: $tmuxTarget }' ;;
+        ghostty)
+            jq -n --arg app "$app" \
+                '{ app: $app, bundleId: "com.mitchellh.ghostty" }' ;;
+        kitty)
+            jq -n --arg app "$app" \
+                '{ app: $app, bundleId: "net.kovidgoyal.kitty" }' ;;
+        vscode)
+            jq -n --arg app "$app" \
+                '{ app: $app, bundleId: "com.microsoft.VSCode" }' ;;
+        jetbrains)
+            # Try to detect specific JetBrains app bundle ID from running processes
+            local jb_bundle
+            jb_bundle=$(osascript -e 'tell application "System Events" to get bundle identifier of (first process whose name contains "IntelliJ" or name contains "WebStorm" or name contains "PyCharm" or name contains "GoLand" or name contains "CLion" or name contains "Rider" or name contains "RubyMine" or name contains "PhpStorm" or name contains "DataGrip")' 2>/dev/null || echo "")
+            jq -n --arg app "$app" --arg bundleId "$jb_bundle" \
+                '{ app: $app, bundleId: (if $bundleId == "" then null else $bundleId end) }' ;;
+        *)
+            jq -n --arg app "$app" '{ app: $app }' ;;
+    esac
+}
+
+TERMINAL_JSON=$(build_terminal_json "$TERM_APP" "$TERM_ID")
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 # Extract session ID from hook JSON (prefer real session_id over fallback)
@@ -78,6 +114,10 @@ TITLE_CACHE="${HOME}/.bobber/.title-cache"
 mkdir -p "$TITLE_CACHE"
 if [ -n "$TRANSCRIPT_PATH" ] && [ -f "$TRANSCRIPT_PATH" ]; then
     CACHE_FILE="${TITLE_CACHE}/${SESSION_ID}"
+    # Invalidate cache if transcript is newer (session continued with new conversation)
+    if [ -f "$CACHE_FILE" ] && [ "$TRANSCRIPT_PATH" -nt "$CACHE_FILE" ]; then
+        rm -f "$CACHE_FILE"
+    fi
     if [ -f "$CACHE_FILE" ]; then
         SESSION_TITLE=$(cat "$CACHE_FILE")
     else
@@ -133,8 +173,7 @@ EVENT_JSON=$(jq -n \
     --arg eventType "$BOBBER_TYPE" \
     --arg tool "$TOOL_NAME" \
     --arg summary "$SUMMARY" \
-    --arg termApp "$TERM_APP" \
-    --arg termId "$TERM_ID" \
+    --argjson terminal "$TERMINAL_JSON" \
     '{
         version: ($version | tonumber),
         timestamp: $timestamp,
@@ -145,7 +184,7 @@ EVENT_JSON=$(jq -n \
         sessionTitle: (if $sessionTitle == "" then null else $sessionTitle end),
         eventType: $eventType,
         details: { tool: $tool, description: $summary },
-        terminal: { app: $termApp, tabId: $termId }
+        terminal: $terminal
     }')
 
 TEMP=$(mktemp "${EVENTS_DIR}/.tmp.XXXXXX")
