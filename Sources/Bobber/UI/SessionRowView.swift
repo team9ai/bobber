@@ -52,12 +52,6 @@ struct SessionsListView: View {
                     let showHeaders = !(sections.count == 1 && sections[0].priority == .standard)
                     ForEach(Array(sections.enumerated()), id: \.element.priority) { index, section in
                         if showHeaders {
-                            // Separator between priority groups (not before standard)
-                            if index > 0 && section.priority != .standard {
-                                Divider()
-                                    .padding(.horizontal, 4)
-                            }
-
                             // Priority group header
                             HStack(spacing: 6) {
                                 Text(section.priority.badge)
@@ -102,9 +96,10 @@ struct SessionsListView: View {
 
                                 // Session rows
                                 ForEach(group.sessions) { session in
-                                    SessionRowView(session: session, sessionManager: sessionManager, onTap: {
-                                        onSelectSession?(session.id)
-                                    })
+                                    SessionRowView(session: session, sessionManager: sessionManager)
+                                        .onTapGesture {
+                                            onSelectSession?(session.id)
+                                        }
                                 }
                             }
                         }
@@ -138,7 +133,6 @@ struct SessionsListView: View {
 struct SessionRowView: View {
     let session: Session
     @ObservedObject var sessionManager: SessionManager
-    var onTap: (() -> Void)? = nil
     @State private var pulsePhase: Bool = false
     @State private var showRenameAlert: Bool = false
     @State private var nicknameInput: String = ""
@@ -232,10 +226,6 @@ struct SessionRowView: View {
                     pulsePhase = false
                 }
             }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onTap?()
         }
         .contextMenu {
             if needsAttention {
