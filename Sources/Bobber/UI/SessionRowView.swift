@@ -3,6 +3,7 @@ import SwiftUI
 struct SessionsListView: View {
     @ObservedObject var sessionManager: SessionManager
     var onSelectSession: ((String) -> Void)?
+    var onJumpToSession: ((Session) -> Void)?
 
     /// Sections: priority group -> project groups -> sessions sorted by lastEvent
     private var sections: [(priority: SessionPriority, projectGroups: [(projectName: String, projectPath: String, sessions: [Session])])] {
@@ -96,7 +97,7 @@ struct SessionsListView: View {
 
                                 // Session rows
                                 ForEach(group.sessions) { session in
-                                    SessionRowView(session: session, sessionManager: sessionManager)
+                                    SessionRowView(session: session, sessionManager: sessionManager, onJumpToSession: onJumpToSession)
                                         .onTapGesture {
                                             onSelectSession?(session.id)
                                         }
@@ -113,19 +114,21 @@ struct SessionsListView: View {
     @ViewBuilder
     private func priorityMenu(for projectPath: String) -> some View {
         let current = sessionManager.projectPriorityDefaults[projectPath] ?? .standard
-        Menu("Project Priority") {
+        Menu {
             ForEach(SessionPriority.allCases, id: \.self) { priority in
                 Button {
                     sessionManager.setProjectPriority(projectPath: projectPath, priority: priority)
                 } label: {
                     HStack {
-                        Text("\(priority.badge) \(priority.displayName)")
+                        Label("\(priority.badge) \(priority.displayName)", systemImage: priority.icon)
                         if priority == current {
                             Image(systemName: "checkmark")
                         }
                     }
                 }
             }
+        } label: {
+            Label("Project Priority", systemImage: "flag.fill")
         }
     }
 }
@@ -133,6 +136,7 @@ struct SessionsListView: View {
 struct SessionRowView: View {
     let session: Session
     @ObservedObject var sessionManager: SessionManager
+    var onJumpToSession: ((Session) -> Void)?
     @State private var pulsePhase: Bool = false
     @State private var showRenameAlert: Bool = false
     @State private var nicknameInput: String = ""
@@ -228,6 +232,12 @@ struct SessionRowView: View {
             }
         }
         .contextMenu {
+            Button {
+                onJumpToSession?(session)
+            } label: {
+                Label("Jump to", systemImage: "arrow.up.forward.app")
+            }
+            Divider()
             if needsAttention {
                 Button {
                     sessionManager.acknowledgeSession(session.id)
@@ -236,19 +246,21 @@ struct SessionRowView: View {
                 }
                 Divider()
             }
-            Menu("Priority") {
+            Menu {
                 ForEach(SessionPriority.allCases, id: \.self) { priority in
                     Button {
                         sessionManager.setSessionPriority(session.id, priority: priority)
                     } label: {
                         HStack {
-                            Text("\(priority.badge) \(priority.displayName)")
+                            Label("\(priority.badge) \(priority.displayName)", systemImage: priority.icon)
                             if priority == session.priority {
                                 Image(systemName: "checkmark")
                             }
                         }
                     }
                 }
+            } label: {
+                Label("Priority", systemImage: "flag.fill")
             }
             Button {
                 nicknameInput = sessionManager.sessionNicknames[session.id] ?? ""

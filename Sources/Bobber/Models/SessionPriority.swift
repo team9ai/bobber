@@ -25,6 +25,14 @@ enum SessionPriority: Int, Codable, CaseIterable, Comparable {
         }
     }
 
+    var icon: String {
+        switch self {
+        case .focus: return "flame.fill"
+        case .priority: return "arrow.up"
+        case .standard: return "minus"
+        }
+    }
+
     var accentColor: Color {
         switch self {
         case .focus: return .orange

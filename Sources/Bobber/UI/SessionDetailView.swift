@@ -147,7 +147,7 @@ struct SessionDetailView: View {
                     .textCase(.uppercase)
 
                 HStack(spacing: 8) {
-                    actionButton("Terminal", icon: "terminal") {
+                    actionButton("Jump to", icon: "arrow.up.forward.app") {
                         onJumpToSession?(session)
                     }
                     actionButton("Rename", icon: "pencil") {

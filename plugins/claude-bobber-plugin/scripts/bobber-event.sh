@@ -29,8 +29,9 @@ detect_terminal() {
             *Terminal*)  echo "terminal" "/dev/$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')"; return ;;
             *ghostty*)   echo "ghostty" ""; return ;;
             *kitty*)     echo "kitty" ""; return ;;
-            *Electron*)  echo "vscode" ""; return ;;
-            *idea*|*webstorm*|*pycharm*) echo "jetbrains" ""; return ;;
+            *Electron*|*VisualStudioCode*) echo "vscode" ""; return ;;
+            *Cursor.app*) echo "cursor" ""; return ;;
+            *idea*|*webstorm*|*pycharm*|*goland*|*clion*|*rider*|*rubymine*|*phpstorm*|*datagrip*) echo "jetbrains" ""; return ;;
         esac
     done
     if [ -n "${TMUX:-}" ]; then
@@ -89,6 +90,9 @@ build_terminal_json() {
         vscode)
             jq -n --arg app "$app" \
                 '{ app: $app, bundleId: "com.microsoft.VSCode" }' ;;
+        cursor)
+            jq -n --arg app "vscode" \
+                '{ app: "vscode", bundleId: "com.todesktop.230313mzl4w4u92" }' ;;
         jetbrains)
             # Try to detect specific JetBrains app bundle ID from running processes
             local jb_bundle

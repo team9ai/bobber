@@ -61,7 +61,8 @@ struct PanelContentView: View {
                         onSelectSession: { id in
                             sessionManager.acknowledgeSession(id)
                             selectedSessionId = id
-                        }
+                        },
+                        onJumpToSession: onJumpToSession
                     )
                 }
             case .actions:

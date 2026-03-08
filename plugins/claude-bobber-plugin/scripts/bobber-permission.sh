@@ -27,8 +27,9 @@ detect_terminal() {
             *Terminal*)  echo "terminal" "$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')"; return ;;
             *ghostty*)   echo "ghostty" ""; return ;;
             *kitty*)     echo "kitty" ""; return ;;
-            *Electron*)  echo "vscode" ""; return ;;
-            *idea*|*webstorm*|*pycharm*) echo "jetbrains" ""; return ;;
+            *Electron*|*VisualStudioCode*) echo "vscode" ""; return ;;
+            *Cursor.app*) echo "cursor" ""; return ;;
+            *idea*|*webstorm*|*pycharm*|*goland*|*clion*|*rider*|*rubymine*|*phpstorm*|*datagrip*) echo "jetbrains" ""; return ;;
         esac
     done
     if [ -n "${TMUX:-}" ]; then
