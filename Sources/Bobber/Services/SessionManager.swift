@@ -193,8 +193,15 @@ class SessionManager: ObservableObject {
             )
             pendingActions.append(action)
 
-        case .preToolUse, .userPromptSubmit, .sessionStart:
-            // Clear pending actions for this session (user/agent resumed)
+        case .preToolUse:
+            // Only clear completion actions on preToolUse, NOT permissions/decisions.
+            // PreToolUse fires before PermissionRequest for the same tool, but arrives
+            // later via file watcher (1-2s delay) vs socket (instant), so it would
+            // wipe out permission actions that were just created.
+            pendingActions.removeAll { $0.sessionId == event.sessionId && $0.type == .completion }
+
+        case .userPromptSubmit, .sessionStart:
+            // User genuinely resumed — clear all pending actions
             pendingActions.removeAll { $0.sessionId == event.sessionId }
 
         default:

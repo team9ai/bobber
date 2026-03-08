@@ -5,6 +5,15 @@ class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
+    // Activate app on right-click so SwiftUI .contextMenu works with .nonactivatingPanel
+    override func sendEvent(_ event: NSEvent) {
+        if event.type == .rightMouseDown {
+            NSApp.activate(ignoringOtherApps: true)
+            makeKey()
+        }
+        super.sendEvent(event)
+    }
+
     private static let idleAlpha: CGFloat = 0.65
     private static let hoverAlpha: CGFloat = 1.0
 

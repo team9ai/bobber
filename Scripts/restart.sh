@@ -15,8 +15,10 @@ echo "Building..."
 cd "$PROJECT_DIR"
 swift build 2>&1 | tail -3
 
-# Copy binary to app bundle
+# Copy binary and resources to app bundle
 cp "$DEBUG_BINARY" "$APP_BINARY"
+mkdir -p "$PROJECT_DIR/.build/Bobber.app/Contents/Resources"
+cp "$PROJECT_DIR/Resources/AppIcon.icns" "$PROJECT_DIR/.build/Bobber.app/Contents/Resources/AppIcon.icns"
 
 # Launch
 nohup "$APP_BINARY" > "$LOG_FILE" 2>&1 &
