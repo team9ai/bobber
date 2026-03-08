@@ -81,4 +81,37 @@ final class ModelTests: XCTestCase {
         let session = try decoder.decode(Session.self, from: json)
         XCTAssertEqual(session.priority, .focus)
     }
+
+    func testBobberConfigDecodesWithNewSections() throws {
+        let json = """
+        {
+            "sounds": { "enabled": true, "volume": 0.7, "cooldownSeconds": 3 },
+            "sessions": { "staleTimeoutMinutes": 30, "keepCompletedCount": 10 },
+            "appearance": { "idleOpacity": 0.5, "hoverOpacity": 0.9 },
+            "shortcuts": { "togglePanelKey": "b", "togglePanelModifiers": ["option"] },
+            "general": { "launchAtLogin": false }
+        }
+        """.data(using: .utf8)!
+        let config = try JSONDecoder().decode(BobberConfig.self, from: json)
+        XCTAssertEqual(config.appearance.idleOpacity, 0.5)
+        XCTAssertEqual(config.appearance.hoverOpacity, 0.9)
+        XCTAssertEqual(config.shortcuts.togglePanelKey, "b")
+        XCTAssertEqual(config.shortcuts.togglePanelModifiers, ["option"])
+        XCTAssertEqual(config.general.launchAtLogin, false)
+        XCTAssertNil(config.general.claudeCLIPath)
+    }
+
+    func testBobberConfigDecodesWithoutNewSections() throws {
+        let json = """
+        {
+            "sounds": { "enabled": true, "volume": 0.7, "cooldownSeconds": 3 },
+            "sessions": { "staleTimeoutMinutes": 30, "keepCompletedCount": 10 }
+        }
+        """.data(using: .utf8)!
+        let config = try JSONDecoder().decode(BobberConfig.self, from: json)
+        XCTAssertEqual(config.appearance.idleOpacity, 0.65)
+        XCTAssertEqual(config.appearance.hoverOpacity, 1.0)
+        XCTAssertEqual(config.shortcuts.togglePanelKey, "b")
+        XCTAssertEqual(config.general.launchAtLogin, false)
+    }
 }
