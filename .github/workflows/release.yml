@@ -89,6 +89,7 @@ jobs:
           mkdir -p "$BUNDLE_DIR/Contents/MacOS"
           mkdir -p "$BUNDLE_DIR/Contents/Resources"
           cp "$RELEASE_BINARY" "$BUNDLE_DIR/Contents/MacOS/$APP_NAME"
+          cp "Resources/Info.plist" "$BUNDLE_DIR/Contents/Info.plist"
           cp "Resources/AppIcon.icns" "$BUNDLE_DIR/Contents/Resources/AppIcon.icns"
 
           echo "App bundle assembled at $BUNDLE_DIR"
@@ -121,8 +122,17 @@ jobs:
         run: |
           BUNDLE_DIR=".build/$APP_NAME.app"
           DMG_PATH=".build/$APP_NAME.dmg"
+          DMG_STAGE=".build/dmg-stage"
+
+          # 创建 DMG 临时目录：.app + Applications 快捷方式
+          rm -rf "$DMG_STAGE"
+          mkdir -p "$DMG_STAGE"
+          cp -R "$BUNDLE_DIR" "$DMG_STAGE/"
+          ln -s /Applications "$DMG_STAGE/Applications"
+
           rm -f "$DMG_PATH"
-          hdiutil create -volname "$APP_NAME" -srcfolder "$BUNDLE_DIR" -ov -format UDZO "$DMG_PATH"
+          hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DMG_PATH"
+          rm -rf "$DMG_STAGE"
           echo "DMG created at $DMG_PATH"
 
       # ── 上传 artifact ─────────────────────────────────────────────

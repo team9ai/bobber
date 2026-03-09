@@ -48,7 +48,7 @@ swift build -c release 2>&1 | tail -3
 # macOS .app 结构:
 #   Bobber.app/
 #     Contents/
-#       Info.plist        ← 已在仓库 .build/Bobber.app/ 中维护
+#       Info.plist        ← Resources/Info.plist (版本管理)
 #       MacOS/Bobber      ← release 二进制
 #       Resources/AppIcon.icns
 echo ""
@@ -56,6 +56,7 @@ echo "[2/5] Assembling app bundle..."
 mkdir -p "$BUNDLE_DIR/Contents/MacOS"
 mkdir -p "$BUNDLE_DIR/Contents/Resources"
 cp "$RELEASE_BINARY" "$BUNDLE_DIR/Contents/MacOS/$APP_NAME"
+cp "$PROJECT_DIR/Resources/Info.plist" "$BUNDLE_DIR/Contents/Info.plist"
 cp "$PROJECT_DIR/Resources/AppIcon.icns" "$BUNDLE_DIR/Contents/Resources/AppIcon.icns"
 
 # ── Step 3: Developer ID 签名 ──────────────────────────────────────────────
@@ -86,11 +87,19 @@ else
 fi
 
 # ── Step 5: 打包 DMG ────────────────────────────────────────────────────────
+# 创建包含 .app 和 Applications 快捷方式的 DMG，方便用户拖拽安装
 # UDZO: zlib 压缩格式，兼容性最好
 echo ""
 echo "[5/5] Creating DMG..."
+DMG_STAGE="$PROJECT_DIR/.build/dmg-stage"
+rm -rf "$DMG_STAGE"
+mkdir -p "$DMG_STAGE"
+cp -R "$BUNDLE_DIR" "$DMG_STAGE/"
+ln -s /Applications "$DMG_STAGE/Applications"
+
 rm -f "$DMG_PATH"
-hdiutil create -volname "$APP_NAME" -srcfolder "$BUNDLE_DIR" -ov -format UDZO "$DMG_PATH"
+hdiutil create -volname "$APP_NAME" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DMG_PATH"
+rm -rf "$DMG_STAGE"
 
 echo ""
 echo "=== Done! ==="
