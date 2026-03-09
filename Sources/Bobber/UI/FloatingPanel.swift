@@ -69,7 +69,7 @@ private class HoverTrackingHostingView<Content: View>: ClickHostingView<Content>
         addTrackingArea(area)
     }
 
-    @MainActor required override init(rootView: Content) {
+    @MainActor required init(rootView: Content) {
         self.onHover = { _ in }
         super.init(rootView: rootView)
     }
