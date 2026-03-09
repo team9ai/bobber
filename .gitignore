@@ -1,4 +1,6 @@
 .worktrees/
 .build/
+.swiftpm/
+.DS_Store
 
 tmp
