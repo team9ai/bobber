@@ -14,7 +14,10 @@ struct SessionsSettingsView: View {
                         Text("Stale timeout:")
                         TextField("", value: $config.sessions.staleTimeoutMinutes, format: .number)
                             .frame(width: 60)
-                            .onChange(of: config.sessions.staleTimeoutMinutes) { _ in onConfigChanged() }
+                            .onChange(of: config.sessions.staleTimeoutMinutes) { _ in
+                                config.sessions.staleTimeoutMinutes = max(1, config.sessions.staleTimeoutMinutes)
+                                onConfigChanged()
+                            }
                         Text("minutes")
                             .foregroundColor(.secondary)
                     }
@@ -28,7 +31,10 @@ struct SessionsSettingsView: View {
                         Text("Keep completed:")
                         TextField("", value: $config.sessions.keepCompletedCount, format: .number)
                             .frame(width: 60)
-                            .onChange(of: config.sessions.keepCompletedCount) { _ in onConfigChanged() }
+                            .onChange(of: config.sessions.keepCompletedCount) { _ in
+                                config.sessions.keepCompletedCount = max(0, config.sessions.keepCompletedCount)
+                                onConfigChanged()
+                            }
                         Text("sessions")
                             .foregroundColor(.secondary)
                     }

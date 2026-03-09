@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var settingsController: SettingsWindowController?
     private var claudeCLIManager: ClaudeCLIManager!
     private var config: BobberConfig = BobberConfig.load()
+    private var configSaveTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[Bobber] applicationDidFinishLaunching called")
@@ -153,8 +154,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 claudeCLIManager: claudeCLIManager,
                 onConfigChanged: { [weak self] in
                     guard let self else { return }
-                    self.config.save()
                     self.applyConfig()
+                    self.debouncedSaveConfig()
                 }
             )
         }
@@ -166,7 +167,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    private func debouncedSaveConfig() {
+        configSaveTimer?.invalidate()
+        configSaveTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+            self?.config.save()
+        }
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        configSaveTimer?.invalidate()
+        config.save()
         eventWatcher?.stop()
         permissionServer?.stop()
         hotkeyManager?.stop()

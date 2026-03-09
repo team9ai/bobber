@@ -80,7 +80,7 @@ struct PanelContentView: View {
             }
         }
         .frame(minWidth: 280, maxWidth: .infinity, minHeight: 200, maxHeight: .infinity)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.9))
+        .background(Color(nsColor: .windowBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
