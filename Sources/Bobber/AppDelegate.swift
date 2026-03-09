@@ -79,6 +79,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setupEventWatcher() {
         eventWatcher = EventFileWatcher { [weak self] event in
             self?.sessionManager.handleEvent(event)
+            switch event.eventType {
+            case .taskCompleted, .idlePrompt, .stop:
+                self?.soundManager.play(for: .completion)
+            case .elicitationDialog:
+                self?.soundManager.play(for: .decision)
+            default:
+                break
+            }
         }
         try? eventWatcher?.start()
     }
@@ -133,6 +141,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         soundManager.enabled = config.sounds.enabled
         soundManager.volume = config.sounds.volume
         soundManager.cooldownSeconds = config.sounds.cooldownSeconds
+        soundManager.soundNames = [
+            .permission: config.sounds.permissionSound,
+            .completion: config.sounds.completionSound,
+            .decision: config.sounds.decisionSound,
+        ]
 
         panelController?.floatingPanel?.updateOpacity(
             idle: CGFloat(config.appearance.idleOpacity),
