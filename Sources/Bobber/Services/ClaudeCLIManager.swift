@@ -108,13 +108,13 @@ class ClaudeCLIManager: ObservableObject {
         Task.detached { [weak self] in
             // Step 1: Add marketplace
             let addResult = self?.runCLI(cli, args: ["plugin", "marketplace", "add", Self.githubRepo])
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.operationLog += "Adding marketplace...\n\(addResult ?? "")\n"
             }
 
             // Step 2: Install plugin
             let installResult = self?.runCLI(cli, args: ["plugin", "install", "bobber-claude@bobber"])
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.operationLog += "Installing plugin...\n\(installResult ?? "")\n"
                 self?.isRunningOperation = false
                 self?.checkPluginStatus()
@@ -133,12 +133,12 @@ class ClaudeCLIManager: ObservableObject {
 
         Task.detached { [weak self] in
             let uninstallResult = self?.runCLI(cli, args: ["plugin", "uninstall", "bobber-claude@bobber"])
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.operationLog += "Uninstalling plugin...\n\(uninstallResult ?? "")\n"
             }
 
             let removeResult = self?.runCLI(cli, args: ["plugin", "marketplace", "remove", "bobber"])
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.operationLog += "Removing marketplace...\n\(removeResult ?? "")\n"
                 self?.isRunningOperation = false
                 self?.checkPluginStatus()
@@ -183,7 +183,7 @@ class ClaudeCLIManager: ObservableObject {
 
         Task.detached { [weak self] in
             let result = self?.runCLI(cli, args: ["plugin", "update", "bobber-claude@bobber"])
-            await MainActor.run {
+            await MainActor.run { [weak self] in
                 self?.operationLog += "Updating plugin...\n\(result ?? "")\n"
                 self?.isRunningOperation = false
                 self?.checkPluginStatus()
