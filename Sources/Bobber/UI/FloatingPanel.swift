@@ -14,8 +14,16 @@ class FloatingPanel: NSPanel {
         super.sendEvent(event)
     }
 
-    private static let idleAlpha: CGFloat = 0.65
-    private static let hoverAlpha: CGFloat = 1.0
+    private(set) var idleAlpha: CGFloat = 0.65
+    private(set) var hoverAlpha: CGFloat = 1.0
+
+    func updateOpacity(idle: CGFloat, hover: CGFloat) {
+        idleAlpha = idle
+        hoverAlpha = hover
+        if alphaValue != hoverAlpha {
+            alphaValue = idleAlpha
+        }
+    }
 
     init(contentView: some View) {
         super.init(
@@ -30,7 +38,7 @@ class FloatingPanel: NSPanel {
         self.backgroundColor = .clear
         self.hasShadow = true
         self.isMovableByWindowBackground = true
-        self.alphaValue = Self.idleAlpha
+        self.alphaValue = idleAlpha
 
         self.contentMinSize = NSSize(width: 280, height: 200)
         self.contentMaxSize = NSSize(width: 500, height: 800)
@@ -38,7 +46,7 @@ class FloatingPanel: NSPanel {
         let hostingView = HoverTrackingHostingView(rootView: contentView) { [weak self] hovering in
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.duration = 0.2
-                self?.animator().alphaValue = hovering ? Self.hoverAlpha : Self.idleAlpha
+                self?.animator().alphaValue = hovering ? (self?.hoverAlpha ?? 1.0) : (self?.idleAlpha ?? 0.65)
             }
         }
         self.contentView = hostingView
