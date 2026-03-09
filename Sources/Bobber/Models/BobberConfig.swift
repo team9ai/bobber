@@ -11,6 +11,9 @@ struct BobberConfig: Codable {
         var enabled: Bool = true
         var volume: Float = 0.7
         var cooldownSeconds: Double = 3
+        var permissionSound: String = "Sosumi"
+        var completionSound: String = "Glass"
+        var decisionSound: String = "Ping"
     }
 
     struct SessionConfig: Codable {
