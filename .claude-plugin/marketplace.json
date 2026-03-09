@@ -1,0 +1,18 @@
+{
+  "name": "bobber",
+  "owner": {
+    "name": "Bobber"
+  },
+  "metadata": {
+    "description": "Bobber - floating desktop companion for Claude Code sessions"
+  },
+  "plugins": [
+    {
+      "name": "bobber-claude",
+      "source": "./plugins/claude-bobber-plugin",
+      "description": "Session monitoring hooks for Bobber",
+      "version": "1.0.0",
+      "keywords": ["bobber", "monitoring", "hooks", "session"]
+    }
+  ]
+}
