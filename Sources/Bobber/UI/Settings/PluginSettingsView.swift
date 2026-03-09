@@ -42,6 +42,10 @@ struct PluginSettingsView: View {
                             }
                             .disabled(claudeCLIManager.isRunningOperation)
                         case .installedDisabled:
+                            Button("Enable") {
+                                claudeCLIManager.enablePlugin { _ in }
+                            }
+                            .disabled(claudeCLIManager.isRunningOperation)
                             Button("Uninstall") {
                                 claudeCLIManager.uninstallPlugin { _ in }
                             }

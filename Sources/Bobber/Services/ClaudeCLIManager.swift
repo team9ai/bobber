@@ -145,6 +145,26 @@ class ClaudeCLIManager: ObservableObject {
         }
     }
 
+    func enablePlugin(completion: @escaping (Bool) -> Void) {
+        let settingsURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/settings.json")
+        guard let data = try? Data(contentsOf: settingsURL),
+              var settings = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            completion(false)
+            return
+        }
+        var enabled = settings["enabledPlugins"] as? [String: Bool] ?? [:]
+        if let key = enabled.keys.first(where: { $0.hasPrefix("bobber-claude@") }) {
+            enabled[key] = true
+        }
+        settings["enabledPlugins"] = enabled
+        if let newData = try? JSONSerialization.data(withJSONObject: settings, options: [.prettyPrinted, .sortedKeys]) {
+            try? newData.write(to: settingsURL)
+        }
+        checkPluginStatus()
+        completion(pluginStatus == .installed)
+    }
+
     func reinstallPlugin(completion: @escaping (Bool) -> Void) {
         uninstallPlugin { [weak self] _ in
             self?.installPlugin(completion: completion)

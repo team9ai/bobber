@@ -39,10 +39,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupPermissionServer()
         setupHotkey()
         setupCleanupTimer()
-        applyConfig()
 
         // Auto-show panel on launch for debugging
         panelController?.show()
+        applyConfig()
         NSLog("[Bobber] panel shown on launch")
     }
 
