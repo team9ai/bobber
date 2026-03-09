@@ -2,51 +2,57 @@ import AppKit
 import SwiftUI
 
 class PanelController {
-    private var panel: FloatingPanel?
+    private var _panel: FloatingPanel?
     private let sessionManager: SessionManager
     private let onPermissionDecision: ((String, PermissionDecision) -> Void)?
     private let onJumpToSession: ((Session) -> Void)?
+    private let onSettings: (() -> Void)?
+
+    var floatingPanel: FloatingPanel? { _panel }
 
     init(sessionManager: SessionManager,
          onPermissionDecision: ((String, PermissionDecision) -> Void)? = nil,
-         onJumpToSession: ((Session) -> Void)? = nil) {
+         onJumpToSession: ((Session) -> Void)? = nil,
+         onSettings: (() -> Void)? = nil) {
         self.sessionManager = sessionManager
         self.onPermissionDecision = onPermissionDecision
         self.onJumpToSession = onJumpToSession
+        self.onSettings = onSettings
     }
 
-    var isVisible: Bool { panel?.isVisible ?? false }
+    var isVisible: Bool { _panel?.isVisible ?? false }
 
     func toggle() {
         if isVisible { hide() } else { show() }
     }
 
     func show() {
-        if panel == nil {
+        if _panel == nil {
             let contentView = PanelContentView(
                 sessionManager: sessionManager,
                 onPermissionDecision: onPermissionDecision,
                 onJumpToSession: onJumpToSession,
-                onHide: { [weak self] in self?.hide() }
+                onHide: { [weak self] in self?.hide() },
+                onSettings: onSettings
             )
-            panel = FloatingPanel(contentView: contentView)
+            _panel = FloatingPanel(contentView: contentView)
             restorePosition()
 
             NotificationCenter.default.addObserver(
                 forName: NSWindow.didMoveNotification,
-                object: panel,
+                object: _panel,
                 queue: .main
             ) { [weak self] _ in self?.savePosition() }
         }
-        panel?.makeKeyAndOrderFront(nil)
+        _panel?.makeKeyAndOrderFront(nil)
     }
 
     func hide() {
-        panel?.orderOut(nil)
+        _panel?.orderOut(nil)
     }
 
     private func savePosition() {
-        guard let frame = panel?.frame else { return }
+        guard let frame = _panel?.frame else { return }
         UserDefaults.standard.set(frame.origin.x, forKey: "bobber.panel.x")
         UserDefaults.standard.set(frame.origin.y, forKey: "bobber.panel.y")
     }
@@ -55,9 +61,9 @@ class PanelController {
         let x = UserDefaults.standard.double(forKey: "bobber.panel.x")
         let y = UserDefaults.standard.double(forKey: "bobber.panel.y")
         if x != 0 || y != 0 {
-            panel?.setFrameOrigin(NSPoint(x: x, y: y))
+            _panel?.setFrameOrigin(NSPoint(x: x, y: y))
         } else {
-            panel?.center()
+            _panel?.center()
         }
     }
 }

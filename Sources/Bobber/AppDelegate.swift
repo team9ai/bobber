@@ -12,6 +12,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var soundManager: SoundManager!
     private var windowJumper: WindowJumper!
     private var cleanupTimer: Timer?
+    private var settingsController: SettingsWindowController?
+    private var claudeCLIManager: ClaudeCLIManager!
+    private var config: BobberConfig = BobberConfig.load()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[Bobber] applicationDidFinishLaunching called")
@@ -22,6 +25,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         soundManager = SoundManager()
         windowJumper = WindowJumper()
 
+        claudeCLIManager = ClaudeCLIManager()
+        if let savedPath = config.general.claudeCLIPath {
+            claudeCLIManager.setCustomPath(savedPath)
+        } else {
+            claudeCLIManager.autoDetect()
+        }
+
         setupMenubarIcon()
         NSLog("[Bobber] menubar icon setup done, statusItem: \(String(describing: statusItem))")
         setupPanel()
@@ -29,6 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupPermissionServer()
         setupHotkey()
         setupCleanupTimer()
+        applyConfig()
 
         // Auto-show panel on launch for debugging
         panelController?.show()
@@ -56,6 +67,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onJumpToSession: { [weak self] session in
                 self?.windowJumper.jumpToSession(session)
+            },
+            onSettings: { [weak self] in
+                self?.showSettings()
             }
         )
     }
@@ -111,6 +125,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func togglePanel() {
         panelController?.toggle()
+    }
+
+    private func applyConfig() {
+        soundManager.enabled = config.sounds.enabled
+        soundManager.volume = config.sounds.volume
+        soundManager.cooldownSeconds = config.sounds.cooldownSeconds
+
+        panelController?.floatingPanel?.updateOpacity(
+            idle: CGFloat(config.appearance.idleOpacity),
+            hover: CGFloat(config.appearance.hoverOpacity)
+        )
+
+        hotkeyManager?.reconfigure(
+            key: config.shortcuts.togglePanelKey,
+            modifiers: config.shortcuts.togglePanelModifiers
+        )
+    }
+
+    private func showSettings() {
+        if settingsController == nil {
+            settingsController = SettingsWindowController(
+                config: Binding(
+                    get: { self.config },
+                    set: { self.config = $0 }
+                ),
+                claudeCLIManager: claudeCLIManager,
+                onConfigChanged: { [weak self] in
+                    guard let self else { return }
+                    self.config.save()
+                    self.applyConfig()
+                }
+            )
+        }
+        settingsController?.show()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
