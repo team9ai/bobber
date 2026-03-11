@@ -39,19 +39,31 @@ class ClaudeCLIManager: ObservableObject {
     }
 
     func autoDetect() {
+        var log = "Auto-detecting Claude CLI...\n"
+
         // Try `which claude` using a login shell to get the user's full PATH
         if let path = runLoginShell("which claude"), !path.isEmpty {
-            cliPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            log += "Found via shell: \(trimmed)\n"
+            cliPath = trimmed
+            operationLog = log
             return
         }
+        log += "Shell lookup failed, trying known paths...\n"
+
         // Fallback: try known paths
         for path in Self.knownPaths() {
             if FileManager.default.isExecutableFile(atPath: path) {
+                log += "Found at: \(path)\n"
                 cliPath = path
+                operationLog = log
                 return
             }
         }
+
+        log += "Not found in any known location.\n"
         cliPath = nil
+        operationLog = log
     }
 
     func setCustomPath(_ path: String) {
@@ -194,12 +206,28 @@ class ClaudeCLIManager: ObservableObject {
 
     // MARK: - Private
 
-    /// Run a command through the user's login shell to get the full PATH
-    /// Uses -lc to source .zprofile/.profile for PATH setup (not -ic, which
-    /// requires a real TTY and fails when stdin is /dev/null in a GUI app)
+    /// The user's default shell
+    private var userShell: String {
+        ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+    }
+
+    /// Shell snippet that sources rc files (where nvm/volta/etc. set PATH).
+    /// Login shell already sources .zprofile/.profile, but tools like nvm add
+    /// their PATH setup to .zshrc/.bashrc which -lc doesn't source.
+    private var rcSourceSnippet: String {
+        let shell = userShell
+        if shell.hasSuffix("zsh") {
+            return "[ -f ~/.zshrc ] && source ~/.zshrc 2>/dev/null; "
+        } else if shell.hasSuffix("bash") {
+            return "[ -f ~/.bashrc ] && source ~/.bashrc 2>/dev/null; "
+        }
+        return ""
+    }
+
+    /// Run a command through the user's login shell with full PATH
     private func runLoginShell(_ command: String) -> String? {
-        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
-        guard let output = runShell(shell, args: ["-lc", command]) else { return nil }
+        let fullCommand = rcSourceSnippet + command
+        guard let output = runShell(userShell, args: ["-lc", fullCommand]) else { return nil }
         let lines = output.components(separatedBy: .newlines).filter { !$0.isEmpty }
         return lines.last
     }
@@ -223,7 +251,16 @@ class ClaudeCLIManager: ObservableObject {
         }
     }
 
+    /// Run the claude CLI through login shell so node/etc. are in PATH.
+    /// Direct execution fails because claude's shebang (#!/usr/bin/env node)
+    /// can't find node in the minimal macOS app bundle PATH.
     private func runCLI(_ cli: String, args: [String]) -> String? {
-        return runShell(cli, args: args)
+        let escapedArgs = ([cli] + args).map { shellEscape($0) }.joined(separator: " ")
+        let fullCommand = rcSourceSnippet + escapedArgs
+        return runShell(userShell, args: ["-lc", fullCommand])
+    }
+
+    private func shellEscape(_ arg: String) -> String {
+        "'" + arg.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }
