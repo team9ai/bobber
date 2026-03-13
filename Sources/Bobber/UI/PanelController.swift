@@ -44,7 +44,7 @@ class PanelController {
                 queue: .main
             ) { [weak self] _ in self?.savePosition() }
         }
-        _panel?.makeKeyAndOrderFront(nil)
+        _panel?.orderFront(nil)
     }
 
     func hide() {

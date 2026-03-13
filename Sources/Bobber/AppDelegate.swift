@@ -97,7 +97,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.sessionManager.handleEvent(event)
             self.soundManager.play(for: .permission)
-            self.panelController?.show()
         }
         try? permissionServer?.start()
     }
