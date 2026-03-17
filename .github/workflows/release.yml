@@ -23,16 +23,16 @@ env:
 
 jobs:
   build:
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-14
     timeout-minutes: 30
     strategy:
       matrix:
         include:
-          - runner: macos-14   # Apple Silicon
-            arch: arm64
+          - arch: arm64
+            swift_arch_flag: ""
             triple: arm64-apple-macosx
-          - runner: macos-13   # Intel
-            arch: x86_64
+          - arch: x86_64
+            swift_arch_flag: "--arch x86_64"
             triple: x86_64-apple-macosx
 
     steps:
@@ -87,7 +87,7 @@ jobs:
 
       # ── 编译 ─────────────────────────────────────────────────────
       - name: Build release binary
-        run: swift build -c release
+        run: swift build -c release ${{ matrix.swift_arch_flag }}
 
       # ── 组装 .app ────────────────────────────────────────────────
       - name: Assemble app bundle
