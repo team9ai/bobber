@@ -23,8 +23,17 @@ env:
 
 jobs:
   build:
-    runs-on: macos-14  # Apple Silicon runner
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14   # Apple Silicon
+            arch: arm64
+            triple: arm64-apple-macosx
+          - runner: macos-13   # Intel
+            arch: x86_64
+            triple: x86_64-apple-macosx
 
     steps:
       - name: Checkout
@@ -84,7 +93,7 @@ jobs:
       - name: Assemble app bundle
         run: |
           BUNDLE_DIR=".build/$APP_NAME.app"
-          RELEASE_BINARY=".build/arm64-apple-macosx/release/$APP_NAME"
+          RELEASE_BINARY=".build/${{ matrix.triple }}/release/$APP_NAME"
 
           mkdir -p "$BUNDLE_DIR/Contents/MacOS"
           mkdir -p "$BUNDLE_DIR/Contents/Resources"
@@ -123,7 +132,7 @@ jobs:
           BUNDLE_DIR=".build/$APP_NAME.app"
           # 文件名格式: Bobber-v0.1.4-arm64.dmg
           VERSION="${GITHUB_REF_NAME:-dev}"
-          ARCH="$(uname -m)"
+          ARCH="${{ matrix.arch }}"
           DMG_NAME="${APP_NAME}-${VERSION}-${ARCH}.dmg"
           DMG_PATH=".build/$DMG_NAME"
           DMG_STAGE=".build/dmg-stage"
