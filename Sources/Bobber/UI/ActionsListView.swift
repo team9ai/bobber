@@ -31,6 +31,15 @@ struct ActionsListView: View {
                     }
                     Spacer()
                     HStack(spacing: 12) {
+                        Button(action: {
+                            sessionManager.clearAllActions()
+                            currentIndex = 0
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Clear all actions")
                         Button(action: { navigate(-1) }) {
                             Image(systemName: "chevron.left")
                         }

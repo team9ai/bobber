@@ -213,6 +213,10 @@ class SessionManager: ObservableObject {
         pendingActions.removeAll { $0.id == actionId }
     }
 
+    func clearAllActions() {
+        pendingActions.removeAll()
+    }
+
     func cleanupSessions() {
         let now = Date()
         for i in sessions.indices {
